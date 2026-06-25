@@ -2,14 +2,37 @@ import React, { useState } from 'react';
 import {
   StyleSheet, View, Text, Image, TouchableOpacity,
   SafeAreaView, KeyboardAvoidingView, Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS } from '@/styles/theme';
 import { Input } from '@/components/Input';
+import { useAuth } from '@/context/AuthContext';
+
 export default function LoginScreen() {
-  const router = useRouter();
-  const [email, setEmail]       = useState('');
+  const router      = useRouter();
+  const { login }   = useAuth();
+
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
+
+  async function handleLogin() {
+    setError('');
+    if (!email.trim()) { setError('Informe seu e-mail.'); return; }
+    if (!password)     { setError('Informe sua senha.');  return; }
+
+    try {
+      setLoading(true);
+      await login(email.trim(), password);
+      // AuthGuard redireciona automaticamente para /(tabs) após login
+    } catch (e: any) {
+      setError(e.message || 'Erro ao fazer login. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,28 +69,41 @@ export default function LoginScreen() {
           label="Email"
           placeholder="seu@email.com"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={t => { setEmail(t); setError(''); }}
           keyboardType="email-address"
           autoCapitalize="none"
         />
-
         <Input
           label="Senha"
           placeholder="........"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={t => { setPassword(t); setError(''); }}
           secureTextEntry
         />
 
-        {/* LOGIN BUTTON */}
-        <TouchableOpacity style={styles.mainBtn}>
-          <Text style={styles.mainBtnText}>Entrar</Text>
+        {/* ERRO */}
+        {!!error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>⚠️ {error}</Text>
+          </View>
+        )}
+
+        {/* BOTÃO ENTRAR */}
+        <TouchableOpacity
+          style={[styles.mainBtn, loading && { opacity: 0.7 }]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading
+            ? <ActivityIndicator color="#FFF" />
+            : <Text style={styles.mainBtnText}>Entrar</Text>
+          }
         </TouchableOpacity>
 
-        {/* FOOTER — navega para o cadastro */}
+        {/* FOOTER */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Não tem conta? </Text>
-          <TouchableOpacity onPress={() => router.push('/register')}>
+          <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
             <Text style={styles.linkText}>Criar conta</Text>
           </TouchableOpacity>
         </View>
@@ -85,32 +121,24 @@ const styles = StyleSheet.create({
   subtitle:  { color: '#888', fontSize: 16, marginTop: 10 },
 
   googleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginBottom: 30,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#ddd', borderRadius: 12,
+    paddingVertical: 14, marginBottom: 30,
   },
   googleIcon:    { width: 20, height: 20, marginRight: 10 },
   googleBtnText: { fontSize: 16, fontWeight: '500', color: '#333' },
 
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
-  line:       { flex: 1, height: 1, backgroundColor: '#eee' },
-  dividerText:{ marginHorizontal: 15, color: '#999', fontSize: 12 },
+  dividerRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
+  line:        { flex: 1, height: 1, backgroundColor: '#eee' },
+  dividerText: { marginHorizontal: 15, color: '#999', fontSize: 12 },
 
-  mainBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 18,
-    alignItems: 'center',
-    marginTop: 20,
-  },
+  errorBox:  { backgroundColor: '#fdecea', borderRadius: 10, padding: 12, marginTop: 8 },
+  errorText: { color: '#c0392b', fontSize: 13, fontWeight: '500' },
+
+  mainBtn:     { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 18, alignItems: 'center', marginTop: 20 },
   mainBtnText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
 
-  footer:    { flexDirection: 'row', justifyContent: 'center', marginTop: 30 },
-  footerText:{ color: '#888', fontSize: 14 },
-  linkText:  { color: COLORS.primary, fontWeight: 'bold', fontSize: 14 },
+  footer:     { flexDirection: 'row', justifyContent: 'center', marginTop: 30 },
+  footerText: { color: '#888', fontSize: 14 },
+  linkText:   { color: COLORS.primary, fontWeight: 'bold', fontSize: 14 },
 });

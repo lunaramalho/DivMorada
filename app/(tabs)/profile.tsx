@@ -5,10 +5,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
+
 
 type Modality = 'Administrador' | 'Morador';
 
 export default function ProfileScreen() {
+  const { user, logout } = useAuth();
   const router = useRouter();
 
   const [name,     setName]     = useState('João Pedro');
